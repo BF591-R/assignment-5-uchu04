@@ -232,18 +232,31 @@ plot_volcano <- function(labeled_results) {
 #' @export
 #'
 #' @examples rnk_list <- make_ranked_log2fc(labeled_results, 'data/id2gene.txt')
-
 make_ranked_log2fc <- function(labeled_results, id2gene_path) {
-    id2gene <- read.table(id2gene_path,sep='\t',header=TRUE)
-    ranked <- labeled_results %>%
-      left_join(id2gene, by =c('genes' = colnames(id2gene)[1])) %>%
-      filter(!is.na(log2FoldChange)) %>%
-      arrange(desc(log2FoldChange))
-    
-    rank_list <- ranked$log2FoldChange
-    names(rank_list) <- ranked[[colnames(id2gene)[2]]]
-    
-    return(rank_list)
+  # Read mapping of Ensembl IDs to gene symbols
+  id2gene <- read.table(id2gene_path, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+  
+  # Assume first column = Ensembl ID, second column = gene symbol
+  gene_id_col <- colnames(id2gene)[1]
+  gene_symbol_col <- colnames(id2gene)[2]
+  
+  # Join DESeq2 results with gene symbols
+  ranked <- labeled_results %>%
+    dplyr::left_join(id2gene, by = c("genes" = gene_id_col)) %>%
+    dplyr::filter(!is.na(log2FoldChange)) %>%
+    dplyr::filter(!is.na(.data[[gene_symbol_col]])) %>%
+    dplyr::filter(.data[[gene_symbol_col]] != "") %>%
+    dplyr::arrange(desc(log2FoldChange))
+  
+  # Create named vector
+  ranked_vector <- ranked$log2FoldChange
+  names(ranked_vector) <- ranked[[gene_symbol_col]]
+  
+  # Remove any NA or empty names (safety)
+  ranked_vector <- ranked_vector[!is.na(names(ranked_vector))]
+  ranked_vector <- ranked_vector[names(ranked_vector) != ""]
+  
+  return(ranked_vector)
 }
 
 #' Function to run fgsea with arguments for min and max gene set size
