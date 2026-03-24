@@ -70,8 +70,9 @@ analysis (referred to as the dds in the vignette)
 #Run your DESeq2 function here which returns a list of the dds and the results
 #Assign the results and the dds from the returned list to their own variables 
 #for ease of use
-dds1 <- return_deseq_res(summarised_ex,~timepoint)
-dds1
+dds2 <- return_deseq_res(summarised_ex,~timepoint)
+dds2$dds
+dds2$results
 ```
 
 ## 3. Annotating results to construct a labeled volcano plot
@@ -88,7 +89,7 @@ user-defined threshold for padj and set it at .10.
 #Label the results with the column as specified above
 #Display the summary of the tibble
 
-annotated <- label_res(dds1,0.1)
+annotated <- label_res(dds2$results,0.1)
 annotated
 ```
 
@@ -96,11 +97,11 @@ annotated
 
 ```{r code block for descriptive captions}
 
-caption_4 <- 'Descriptive caption for part 4'
-caption_5 <- 'Descriptive caption for part 5'
-caption_6 <- 'Descriptive caption for part 6'
-caption_7 <- 'Descriptive caption for part 7'
-caption_9 <- 'Descriptive caption for part 9'
+caption_4 <- 'Distribution of unadjusted p-values from DESeq2 differential expression analysis comparing vAd and vP0 timepoints. The enrichment of p-values near zero indicates a large number of significantly differentially expressed genes between the two timepoints, with the remaining genes showing a uniform distribution consistent with the null hypothesis'
+caption_5 <- 'Distribtion of lg2fold changes for genes significant at a padj threshold of 0.1 from DESeq2 analysis comparing vAd to vP0. The distribution is approximately normal reflecting clear separation between upregulated and downregulated genes, with no significant genes showing only modest fold changes'
+caption_6 <- 'Normalized read counts for top 10 genes ranked by adjusted p-values across all four samples (vP0_1, vP0_2, vAd_1, vAd_2 on a log10 scale. Wide spread of normalized counts across samples for each gene reflects strong differential expression between vP0 and vAd timepoints'
+caption_7 <- 'Volcano plot of DESeq2 results showing log2 fold change vs -log10 adjusted p-value for genes comapring vAd to vP0. Genes are colored by expression status: upregulated (red), downregulated (blue), and not significant (grey) at a padj threshold of 0.1. The plot shows a predominance of upregulated genes with significant genes spread widely along the x-axis, indicating large fold changes in both directions.'
+caption_9 <- 'Top 10 positively and negatively enriched pathways from fgsea analysis with all pathways showing normalized enrichment scores (NES) of approximately 2 in magnitude. Positively enriched pathways (red) are predominantly related to cellular respiration and oxidative phosphorylation, suggesting upregulation of metabolic processes in vAd relative to vP0. Negatively enriched pathways (blue) are largely associated with cell division and the cell cycle, indicating downregulation of proliferative processes.'
 
 ```
 
@@ -142,7 +143,7 @@ jitter plot of the counts and label each by their samplenames.
 ```{r, plot of normalized counts, echo=FALSE, fig.cap = caption_6}
 #Make a scatter/jitter plot of the norm counts for the top ten DE genes ranked
 #by padj
-norm_counts_plot <- scatter_norm_counts(annotated, dds1$dds, 10)
+norm_counts_plot <- scatter_norm_counts(annotated, dds2$dds, 10)
 norm_counts_plot
 ```
 

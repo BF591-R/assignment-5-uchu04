@@ -134,7 +134,7 @@ plot_log2fc <- function(labeled_results, padj_threshold) {
     plot2 <- labeled_results %>%
       filter(padj < padj_threshold) %>%
       ggplot(aes(x = log2FoldChange)) +
-      geom_histogram(bins = 100, fill = 'lightblue', color = 'black') +
+      geom_histogram(bins = 60, fill = 'lightblue', color = 'black') +
       labs(
         title = 'Histogram of Log2FoldChanges for DE Genes (vP0 vs vAd',
         x     = 'Log2 Fold Change',
@@ -234,7 +234,6 @@ plot_volcano <- function(labeled_results) {
 #' @export
 #'
 #' @examples rnk_list <- make_ranked_log2fc(labeled_results, 'data/id2gene.txt')
-rm(make_ranked_log2fc)
 make_ranked_log2fc <- function(labeled_results, id2gene_path) {
   
   id2gene <- read.table(id2gene_path, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
