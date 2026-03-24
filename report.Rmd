@@ -40,14 +40,17 @@ seen in the reference report.
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
 #Read in verse_counts.tsv and sample_metadata.csv and subset to the listed samples
 #Store these dataframes in a SummarizedExperiment object and display the summary here
-
+timepoints = c('vP0_1', 'vP0_2', 'vAd_1', 'vAd_2')
+summarised_ex <- make_se('data/verse_counts.tsv','data/sample_metadata.csv',timepoints)
+summarised_ex
 ```
 
 Display the colData from your SummarizedExperiment object here:
 
 ```{r, echo=FALSE}
 #Display the sample data from your SE object here to make sure the order is right 
-
+colData(summarised_ex)
+colnames(colData(summarised_ex))
 ```
 
 ## 2. [Running DESeq2](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#differential-expression-analysis)
@@ -67,7 +70,8 @@ analysis (referred to as the dds in the vignette)
 #Run your DESeq2 function here which returns a list of the dds and the results
 #Assign the results and the dds from the returned list to their own variables 
 #for ease of use
-
+dds1 <- return_deseq_res(summarised_ex,~timepoint)
+dds1
 ```
 
 ## 3. Annotating results to construct a labeled volcano plot
@@ -83,7 +87,10 @@ user-defined threshold for padj and set it at .10.
 ```{r, label results tibble, echo=FALSE}
 #Label the results with the column as specified above
 #Display the summary of the tibble
+head(dds1$results)
 
+annotated <- label_res(dds1$results,0.1)
+annotated
 ```
 
 ### Captions for figures

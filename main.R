@@ -21,7 +21,21 @@ library('fgsea')
 #'
 #' @examples se <- make_se('verse_counts.tsv', 'sample_metadata.csv', c('vP0', 'vAd'))
 make_se <- function(counts_csv, metafile_csv, selected_times) {
-    return(NULL)
+    counts <- as.matrix(read.table(counts_csv,sep='\t',header=TRUE,row.names=1))
+    metadata <- read.csv(metafile_csv)
+    counts_sub <- counts[, selected_times]
+    
+    colData <- metadata[match(selected_times,metadata$samplename), ]
+    colData <- colData[, c('samplename','timepoint')]
+    rownames(colData) <- colData$samplename
+    colData$timepoint <- relevel(factor(colData$timepoint), ref='vP0')
+    
+    se <- SummarizedExperiment(
+      assays = list(counts = counts_sub),
+      colData = DataFrame(colData),
+      metadata = list(model = ~ selected_times)
+    )
+    
 }
 
 #' Function that runs DESeq2 and returns a named list containing the DESeq2
@@ -37,7 +51,15 @@ make_se <- function(counts_csv, metafile_csv, selected_times) {
 #'
 #' @examples results <- return_deseq_res(se, ~ timepoint)
 return_deseq_res <- function(se, design) {
-    return(NULL)
+  dds <- DESeqDataSet(se,design=design)
+  colData(dds)$timepoint <- relevel(factor(colData(dds)$timepoint),ref='vP0')
+  dds <- DESeq(dds)
+  res <- results(dds)
+  
+  return(list(
+    dds = dds,
+    results = as.data.frame(res)
+  ))
 }
 
 #' Function that takes the DESeq2 results dataframe, converts it to a tibble and
@@ -59,7 +81,16 @@ return_deseq_res <- function(se, design) {
 #'
 #' @examples labeled_results <- label_res(res, .10)
 label_res <- function(deseq2_res, padj_threshold) {
-    return(NULL)
+    result <- as_tibble(deseq2_res) %>%
+      #rownames_to_column("genes") %>%
+      mutate(volc_plot_status = case_when(
+        is.na(padj) ~ "NS",
+        padj >= padj_threshold ~ "NS",
+        log2FoldChange > 0 & padj < padj_threshold ~ "UP",
+        log2FoldChange < 0 & padj < padj_threshold ~ "DOWN",
+        TRUE ~ "NS"
+      ))
+    return(result)
 }
 
 #' Function to plot the unadjusted p-values as a histogram
