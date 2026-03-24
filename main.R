@@ -57,9 +57,9 @@ return_deseq_res <- function(se, design) {
   colData(dds)$timepoint <- relevel(factor(colData(dds)$timepoint),ref='vP0')
   dds <- DESeq(dds)
   res <- results(dds)
-  res_df <- as.data.frame(res) %>%
-    #rownames_to_column("genes")
-  
+  res_df <- as.data.frame(res)
+    
+  # Return both
   return(list(
     dds = dds,
     results = res_df
@@ -234,19 +234,40 @@ plot_volcano <- function(labeled_results) {
 #' @export
 #'
 #' @examples rnk_list <- make_ranked_log2fc(labeled_results, 'data/id2gene.txt')
+rm(make_ranked_log2fc)
 make_ranked_log2fc <- function(labeled_results, id2gene_path) {
-  id2gene <- read.table(id2gene_path,sep='\t',header=TRUE,stringsAsFactors =FALSE)
+  
+  id2gene <- read.table(id2gene_path, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+  
   id_col <- colnames(id2gene)[1]
   gene_col <- colnames(id2gene)[2]
   
-  ranked <- labeled_results %>%
-    dplyr::left_join(id2gene, by = c('genes' = id_col)) %>%
-    dplyr::filter(!is.na(log2FoldChange)) %>%
-    dplyr::filter(!is.na(.data[[gene_col]]), .data[[gene_col]] !='') %>%
-    dplyr::arrange(desc(log2FoldChange))
+  labeled_results$genes <- as.character(labeled_results$genes)
+  id2gene[[id_col]] <- as.character(id2gene[[id_col]])
+  
+  # 🔑 Check if genes already match gene symbols
+  if (all(labeled_results$genes %in% id2gene[[gene_col]])) {
+    
+    # already symbols → skip join
+    ranked <- labeled_results %>%
+      dplyr::filter(!is.na(log2FoldChange)) %>%
+      dplyr::arrange(desc(log2FoldChange))
     
     rnk_list <- ranked$log2FoldChange
-    names(rnk_list <- ranked[[gene_col]])
+    names(rnk_list) <- ranked$genes
+    
+  } else {
+    
+    # need to map IDs → symbols
+    ranked <- labeled_results %>%
+      dplyr::left_join(id2gene, by = c('genes' = id_col)) %>%
+      dplyr::filter(!is.na(log2FoldChange)) %>%
+      dplyr::filter(!is.na(.data[[gene_col]]), .data[[gene_col]] != '') %>%
+      dplyr::arrange(desc(log2FoldChange))
+    
+    rnk_list <- ranked$log2FoldChange
+    names(rnk_list) <- ranked[[gene_col]]
+  }
   
   return(rnk_list)
 }
