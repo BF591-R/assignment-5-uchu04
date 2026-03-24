@@ -58,7 +58,7 @@ return_deseq_res <- function(se, design) {
   dds <- DESeq(dds)
   res <- results(dds)
   res_df <- as.data.frame(res) %>%
-    rownames_to_column("genes")
+    #rownames_to_column("genes")
   
   return(list(
     dds = dds,
@@ -85,9 +85,11 @@ return_deseq_res <- function(se, design) {
 #'
 #' @examples labeled_results <- label_res(res, .10)
 label_res <- function(deseq2_res, padj_threshold) {
-      result <- as_tibble(deseq2_res) %>%
-        filter(!is.na(padj)) %>%
-      mutate(volc_plot_status = case_when(
+      result <- deseq2_res %>%
+        tibble::as_tibble(rownames="genes") %>%
+        dplyr::filter(!is.na(padj)) %>%
+      dplyr::mutate(
+        volc_plot_status = dplyr::case_when(
         padj >= padj_threshold ~ "NS",
         log2FoldChange > 0 & padj < padj_threshold ~ "UP",
         log2FoldChange < 0 & padj < padj_threshold ~ "DOWN",
@@ -233,30 +235,20 @@ plot_volcano <- function(labeled_results) {
 #'
 #' @examples rnk_list <- make_ranked_log2fc(labeled_results, 'data/id2gene.txt')
 make_ranked_log2fc <- function(labeled_results, id2gene_path) {
-  # Read mapping of Ensembl IDs to gene symbols
-  id2gene <- read.table(id2gene_path, sep = '\t', header = TRUE, stringsAsFactors = FALSE)
+  id2gene <- read.table(id2gene_path,sep='\t',header=TRUE,stringsAsFactors =FALSE)
+  id_col <- colnames(id2gene)[1]
+  gene_col <- colnames(id2gene)[2]
   
-  # Assume first column = Ensembl ID, second column = gene symbol
-  gene_id_col <- colnames(id2gene)[1]
-  gene_symbol_col <- colnames(id2gene)[2]
-  
-  # Join DESeq2 results with gene symbols
   ranked <- labeled_results %>%
-    dplyr::left_join(id2gene, by = c("genes" = gene_id_col)) %>%
+    dplyr::left_join(id2gene, by = c('genes' = id_col)) %>%
     dplyr::filter(!is.na(log2FoldChange)) %>%
-    dplyr::filter(!is.na(.data[[gene_symbol_col]])) %>%
-    dplyr::filter(.data[[gene_symbol_col]] != "") %>%
+    dplyr::filter(!is.na(.data[[gene_col]]), .data[[gene_col]] !='') %>%
     dplyr::arrange(desc(log2FoldChange))
+    
+    rnk_list <- ranked$log2FoldChange
+    names(rnk_list <- ranked[[gene_col]])
   
-  # Create named vector
-  ranked_vector <- ranked$log2FoldChange
-  names(ranked_vector) <- ranked[[gene_symbol_col]]
-  
-  # Remove any NA or empty names (safety)
-  ranked_vector <- ranked_vector[!is.na(names(ranked_vector))]
-  ranked_vector <- ranked_vector[names(ranked_vector) != ""]
-  
-  return(ranked_vector)
+  return(rnk_list)
 }
 
 #' Function to run fgsea with arguments for min and max gene set size

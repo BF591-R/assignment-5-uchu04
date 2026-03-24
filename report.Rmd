@@ -40,7 +40,7 @@ seen in the reference report.
 ```{r, warning=FALSE, message=FALSE, echo=FALSE}
 #Read in verse_counts.tsv and sample_metadata.csv and subset to the listed samples
 #Store these dataframes in a SummarizedExperiment object and display the summary here
-timepoints = c('vP0_1', 'vP0_2', 'vAd_1', 'vAd_2')
+timepoints = c('vP0','vAd')
 summarised_ex <- make_se('data/verse_counts.tsv','data/sample_metadata.csv',timepoints)
 summarised_ex
 ```
@@ -87,9 +87,8 @@ user-defined threshold for padj and set it at .10.
 ```{r, label results tibble, echo=FALSE}
 #Label the results with the column as specified above
 #Display the summary of the tibble
-head(dds1$results)
 
-annotated <- label_res(dds1$results,0.1)
+annotated <- label_res(dds1,0.1)
 annotated
 ```
 
@@ -114,7 +113,8 @@ components of the plot.
 
 ```{r, raw pval histogram, echo=FALSE, warning=FALSE, fig.cap = caption_4}
 #Histogram of raw p-values for all discovered genes
-
+pval_plot <- plot_pvals(annotated)
+pval_plot
 ```
 
 ## 5. Plotting the LogFoldChanges for differentially expressed genes
@@ -127,6 +127,10 @@ label any appropriate axes and components of the plot.
 ```{r, log2fc DE genes histogram, echo=FALSE, fig.cap = caption_5}
 #Histogram of log2FC values for significant DE genes with padj (FDR) < .10
 
+log2fc_plot <- plot_log2fc(annotated, 0.1)
+log2fc_plot
+id2gene  <- read.table('data/id2gene.txt', sep = '\t', header = TRUE)
+colnames(id2gene)
 ```
 
 ## 6. Plotting the normalized counts of differentially expressed genes
@@ -138,7 +142,8 @@ jitter plot of the counts and label each by their samplenames.
 ```{r, plot of normalized counts, echo=FALSE, fig.cap = caption_6}
 #Make a scatter/jitter plot of the norm counts for the top ten DE genes ranked
 #by padj
-
+norm_counts_plot <- scatter_norm_counts(annotated, dds1$dds, 10)
+norm_counts_plot
 ```
 
 ## 7. Volcano Plot to visualize differential expression results
@@ -149,7 +154,8 @@ DESeq2 results and color the points appropriately.
 ```{r, volcano plot, echo=FALSE, warning=FALSE, fig.cap = caption_7}
 #Volcano Plot (scatter plot with log2FC on x-axis and -log10(padj) on y-axis)
 #Color points (genes) by status defined in part 3
-
+volcano_plot <- plot_volcano(annotated)
+volcano_plot
 ```
 
 ## 8. Running fgsea
@@ -168,17 +174,17 @@ sets file.
 #first load in the id2gene.txt appropriately
 #add a new column in your labeled results that matches IDs to symbols
 #generate a named vector of symbols and log2FC values in descending order
-
+rnk_list <- make_ranked_log2fc(annotated, 'data/id2gene.txt')
 ```
 
 ```{r, this is the "top" of our ranked list}
 #use head to display the top of the list
-
+head(rnk_list)
 ```
 
 ```{r, this is the "bottom" of our ranked list}
 #use tail to display the bottom of the list
-
+tail(rnk_list)
 ```
 
 Perform a GSEA using a ranked list log2FoldChange values for all genes
@@ -192,12 +198,13 @@ default parameters and the `fgsea()` function.
 #Run fgsea using a ranked list of descending log2FC against the C2 canonical
 #pathways gene set
 #Set minsize to 15 and maxsize to 500, leave the other parameters as defaults
-
+fgsea_results <- run_fgsea('data/m2.cp.v2023.1.Mm.symbols.gmt', rnk_list, 15, 500)
 ```
 
 ```{r, fgsea results, echo=FALSE}
 #Display the results of the fgsea in a tibble sorted by padj (ascending)
-
+fgsea_results <- fgsea_results %>% arrange(padj)
+fgsea_results
 ```
 ## 9. Plotting the top ten positive NES and top ten negative NES pathways
 
@@ -209,6 +216,7 @@ Color the bars by whether they have a positive or negative NES.
 #Plot the top ten pathways with both positive and negative NES (20 total)
 #Color the pathways by the sign of their NES (positive or negative)
 
-
+fgsea_plot <- top_pathways(fgsea_results, 10)
+fgsea_plot
 ```
 
